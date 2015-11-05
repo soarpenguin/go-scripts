@@ -6,6 +6,8 @@ import (
     "runtime"
     "os/exec"
     "os"
+    "strings"
+    "path/filepath"
 )
 
 const (
@@ -18,7 +20,7 @@ const (
 )
 
 func execCmd(cmd string, shell bool) []byte {
-    fmt.Println("command is ", cmd)
+    fmt.Println("run command: ", cmd)
     if shell {
         out, err := exec.Command("bash", "-c", cmd).Output()
         if err != nil {
@@ -39,9 +41,24 @@ func dealWithFile(filename string, cmd string) {
     execCmd(cmd, true)
 }
 
-func dealWithDir(dir string) {
+func dealWithDir(path string, cmd string) {
+    fmt.Printf("deal with dir of: %s\n", path)
+    err := filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
+        if ( f == nil ) {return err}
+        if f.IsDir() {
+            if strings.HasPrefix(f.Name(), ".") {
+                return filepath.SkipDir
+            } else {
+                return nil
+            }
+        }
+        dealWithFile(path, cmd)
+        return nil
+    })
 
-
+    if err != nil {
+        fmt.Printf("filepath.Walk() returned %v\n", err)
+    }
 }
 
 func isExists(file string) (ret bool, err error) {
@@ -75,7 +92,7 @@ func main(){
         case "darwin", "freebsd":
             cmd = "/usr/bin/sed -i \"\" \"s/[ ]*$//g\" "
         default:
-            cmd = "/usr/bin/sed -i \"s/[ \t]*$//g\" "
+            cmd = "sed -i \"s/[ \t]*$//g\" "
     }
 
     if *op_path == "" && *op_file == "" {
@@ -86,6 +103,8 @@ func main(){
             dealWithFile(*op_file, cmd)
         }
     } else if *op_path != "" {
-
+        if _, err := isExists(*op_path); err == nil  {
+            dealWithDir(*op_path, cmd)
+        }
     }
 }
