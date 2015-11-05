@@ -54,8 +54,11 @@ func dealWithDir(path string, cmd string) {
             } else {
                 return nil
             }
+        } else {
+            if ! strings.HasPrefix(f.Name(), ".") {
+                dealWithFile(path, cmd)
+            }
         }
-        dealWithFile(path, cmd)
         return nil
     })
 
@@ -103,10 +106,16 @@ func main(){
         os.Exit(retFail)
     } else if *op_file != "" {
         if _, err := isExists(*op_file); err == nil  {
+            if *op_file, err = filepath.Abs(*op_file); err != nil {
+                panic(err)
+            }
             dealWithFile(*op_file, cmd)
         }
     } else if *op_path != "" {
         if _, err := isExists(*op_path); err == nil  {
+            if *op_path, err = filepath.Abs(*op_path); err != nil {
+                panic(err)
+            }
             dealWithDir(*op_path, cmd)
         }
     }
