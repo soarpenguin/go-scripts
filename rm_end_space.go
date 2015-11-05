@@ -15,25 +15,28 @@ const (
 )
 
 const (
-    RetOK   = iota
-    RetFail
+    retOK   = iota
+    retFail
 )
 
-func execCmd(cmd string, shell bool) []byte {
-    fmt.Println("run command: ", cmd)
-    if shell {
-        out, err := exec.Command("bash", "-c", cmd).Output()
-        if err != nil {
-            panic(err)
-        }
-        return out
+func isProcessOK(err error) {
+    if err != nil {
+        fmt.Println("     [FAIL]")
     } else {
-        out, err := exec.Command(cmd).Output()
-        if err != nil {
-            panic(err)
-        }
-        return out
+        fmt.Println("     [OK]")
     }
+}
+
+func execCmd(cmd string, shell bool) (out []byte, err error) {
+    fmt.Printf("run command: %s", cmd)
+    if shell {
+        out, err = exec.Command("bash", "-c", cmd).Output()
+        isProcessOK(err)
+    } else {
+        out, err = exec.Command(cmd).Output()
+        isProcessOK(err)
+    }
+    return out, err
 }
 
 func dealWithFile(filename string, cmd string) {
@@ -82,13 +85,13 @@ func main(){
 
     if *version {
         fmt.Printf("%s: %s\n", os.Args[0], VERSION)
-        os.Exit(RetOK)
+        os.Exit(retOK)
     }
 
     switch runtime.GOOS {
         case "windows":
             fmt.Printf("Not supported under windows.\n")
-            os.Exit(1)
+            os.Exit(retFail)
         case "darwin", "freebsd":
             cmd = "/usr/bin/sed -i \"\" \"s/[ ]*$//g\" "
         default:
@@ -97,7 +100,7 @@ func main(){
 
     if *op_path == "" && *op_file == "" {
         fmt.Printf("path or file must provide one.\n")
-        os.Exit(RetFail)
+        os.Exit(retFail)
     } else if *op_file != "" {
         if _, err := isExists(*op_file); err == nil  {
             dealWithFile(*op_file, cmd)
