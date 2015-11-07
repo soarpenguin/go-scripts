@@ -93,7 +93,7 @@ func main(){
 
     switch runtime.GOOS {
         case "windows":
-            fmt.Printf("Not supported under windows.\n")
+            fmt.Printf("[Error] not supported under windows.\n")
             os.Exit(retFail)
         case "darwin", "freebsd":
             cmd = "/usr/bin/sed -i \"\" \"s/[ ]*$//g\" "
@@ -101,8 +101,12 @@ func main(){
             cmd = "sed -i \"s/[ \t]*$//g\" "
     }
 
+    *op_path = strings.TrimSpace(*op_path)
+    *op_file = strings.TrimSpace(*op_file)
+
     if *op_path == "" && *op_file == "" {
-        fmt.Printf("path or file must provide one.\n")
+        fmt.Printf("[Error] path or file must provide one.\n\n")
+        flag.Usage()
         os.Exit(retFail)
     } else if *op_file != "" {
         if _, err := isExists(*op_file); err == nil  {
