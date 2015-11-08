@@ -19,6 +19,15 @@ const (
     retFail
 )
 
+func stringInSlice(a string, list []string) bool {
+    for _, b := range list {
+        if b == a {
+            return true
+        }
+    }
+    return false
+}
+
 func isProcessOK(err error) {
     if err != nil {
         fmt.Println("     [FAIL]")
@@ -39,12 +48,21 @@ func execCmd(cmd string, shell bool) (out []byte, err error) {
     return out, err
 }
 
-func dealWithFile(filename string, cmd string) {
+func dealFileWithWhiteList(filename string, cmd string, suffixs []string) {
+    if cap(suffixs) > 0 {
+        ext := filepath.Ext(filename)
+
+        if ! stringInSlice(ext, suffixs) {
+            fmt.Printf("skip deal with file of: %s\n", filename)
+            return
+        }
+    }
+
     cmd += filename
     execCmd(cmd, true)
 }
 
-func dealWithDir(path string, cmd string) {
+func dealWithDir(path string, cmd string, suffixs []string) {
     fmt.Printf("deal with dir of: %s\n", path)
     err := filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
         if ( f == nil ) {return err}
@@ -56,7 +74,7 @@ func dealWithDir(path string, cmd string) {
             }
         } else {
             if ! strings.HasPrefix(f.Name(), ".") {
-                dealWithFile(path, cmd)
+                dealFileWithWhiteList(path, cmd, suffixs)
             }
         }
         return nil
@@ -79,9 +97,11 @@ func isExists(file string) (ret bool, err error) {
 func main(){
 
     var cmd string
+    var suffixArray []string
 
     op_path := flag.String("d", "", "dir to recursive remove spaces at the end of the line.")
     op_file := flag.String("f", "", "file name for remove spaces at the end of line.")
+    suffixs := flag.String("s", "", "white list of file suffixs for deal.")
     version := flag.Bool("v", false, "show version")
 
     flag.Parse()
@@ -103,6 +123,11 @@ func main(){
 
     *op_path = strings.TrimSpace(*op_path)
     *op_file = strings.TrimSpace(*op_file)
+    *suffixs = strings.TrimSpace(*suffixs)
+
+    if *suffixs != "" {
+        suffixArray = strings.Split(*suffixs, ",")
+    }
 
     if *op_path == "" && *op_file == "" {
         fmt.Printf("[Error] path or file must provide one.\n\n")
@@ -113,14 +138,15 @@ func main(){
             if *op_file, err = filepath.Abs(*op_file); err != nil {
                 panic(err)
             }
-            dealWithFile(*op_file, cmd)
+            //dealWithFile(*op_file, cmd)
+            dealFileWithWhiteList(*op_file, cmd, suffixArray)
         }
     } else if *op_path != "" {
         if _, err := isExists(*op_path); err == nil  {
             if *op_path, err = filepath.Abs(*op_path); err != nil {
                 panic(err)
             }
-            dealWithDir(*op_path, cmd)
+            dealWithDir(*op_path, cmd, suffixArray)
         }
     }
 }
