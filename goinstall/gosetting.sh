@@ -6,7 +6,13 @@
 echo ""
 echo "environmet variables for go."
 
-installdir="/usr/local/go"
+if [ $# -lt 2 ];then
+   echo "Please provide user and install path."
+   exit 1
+fi
+
+installdir="$2"
+
 os=`uname`
 if [ $os = "Linux" ]; then
 #    echo "Linux"

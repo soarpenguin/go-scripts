@@ -196,7 +196,7 @@ fi
 
 # Set environment variables
 cd $CURDIR
-{ . ./gosetting.sh $g_USER; }
+{ . ./gosetting.sh $g_USER $g_INSTALL_DIR; }
 
 echo ""
 echo "ALL DONE"
