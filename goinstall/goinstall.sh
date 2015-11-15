@@ -1,15 +1,18 @@
-#!/bin/sh 
+#!/bin/sh
 # Copyright 2013 Yasutaka Kawamoto. All rights reserved.
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-# const 
+# const
 export PS4='+ [`basename ${BASH_SOURCE[0]}`:$LINENO ${FUNCNAME[0]} \D{%F %T} $$ ] '
 CURDIR=$(cd "$(dirname "$0")"; pwd);
 MYNAME="${0##*/}"
 
 g_INSTALL_DIR="/usr/local/go"
 g_USER=""
+
+RET_OK=0
+RET_FAIL=1
 
 #########################
 _report_err() { echo "${MYNAME}: Error: $*" >&2 ; }
@@ -78,7 +81,7 @@ _parse_options()
                 ;;
             -*)
                 _print_fatal "command line: unrecognized option $1" >&2
-                return 1
+                return ${RET_FAIL}
                 ;;
             *)
                 argv=("${argv[@]}" "${1}")
@@ -93,7 +96,7 @@ _parse_options()
             ;;
         0|*)
             _usage 1>&2
-            return 1
+            return ${RET_FAIL}
     ;;
     esac
 }
@@ -102,24 +105,27 @@ _parse_options()
 _parse_options "${@}" || _usage
 
 if [ x"$g_USER" == "x" ]; then
-    _print_fatal "Please privoid user name install golang."
-    _usage
-    exit 1
+    g_USER="$USER"
+    if [ x"$g_USER" == "x" ]; then
+        _print_fatal "Please privoid user name install golang."
+        _usage
+        exit ${RET_FAIL}
+    fi
 fi
 
 ret=`id -u $g_USER`
 if [ $? -ne 0 ]; then
-    _print_fatal "user $g_USER is not exist."
-    exit 1
+    _print_fatal "User $g_USER is not exist."
+    exit ${RET_FAIL}
 fi
 
 # Check whether go is installed.
 if  [ ! -f $g_INSTALL_DIR/bin/go ]; then
-    echo "go is not Installed. Continue..."
+    _trace "go is not Installed. Continue..."
 else
-    echo "Go is installed."
-    echo "Exit."
-    #exit 1
+    _trace "Go is installed."
+    _trace "Exit."
+    exit ${RET_OK}
 fi
 
 #Check OS
@@ -139,7 +145,7 @@ elif [ -f /etc/system-release ]; then
 elif [ `uname` = "Darwin" ]; then #for Mac
     homedir="/Users/$1"
 else
-    echo "not Linux or Mac"
+    _print_fatal "not Linux or Mac"
     exit 1
 fi
 
@@ -147,58 +153,62 @@ fi
 # Install gcc
 if  ! type >/dev/null "gcc" 2>&1 ; then
     if [ `uname` = "Darwin" ]; then #for Mac
-        echo "You need to install Xcode and gcc."
+        _print_fatal "You need to install Xcode and gcc."
         exit 1
     else
-        echo "Installing gcc ..." 
+        _trace "Installing gcc ..."
         $dlcmd install gcc
-        echo "Done"
+        _trace "Done"
     fi
 else
-    echo "gcc is installed."
+    _trace "gcc is installed."
 fi
 
 # Install Marcurial
 if  ! type >/dev/null "hg" 2>&1 ; then
     if [ `uname` = "Darwin" ]; then #for Mac
-        echo "You need to install Marcurial."
-        echo "http://mercurial.selenic.com/downloads/"
-        exit 1
+        _trace "You need to install Marcurial."
+        _trace "http://mercurial.selenic.com/downloads/"
+        exit ${RET_FAIL}
     else
-        echo "Installing Mercurial ..." 
+        _trace "Installing Mercurial ..."
         $dlcmd install mercurial
-        echo "Done"
+        if [ $? -ne 0 ]; then
+            _print_fatal "You need to install Marcurial."
+            _trace "$dlcmd install mercurial"
+            exit ${RET_FAIL}
+        fi
+        _trace "Done"
     fi
 else
-    echo "Mercurial is installed."
+    _trace "Mercurial is installed."
 fi
 
 # Install Go
 if [ -d $g_INSTALL_DIR ]
-then 
-    echo "go dir is existed."
+then
+    _trace "go dir is existed."
 else
-    echo "downloading go ..."
+    _trace "downloading go ..."
     `hg clone -u release https://code.google.com/p/go $g_INSTALL_DIR`
-    echo "Done"
+    _trace "Done"
 fi
 
 #echo "move directory to go/src."
 cd $g_INSTALL_DIR/src/
-echo `pwd`
 if  ! [ -d $g_INSTALL_DIR/bin -a -d $g_INSTALL_DIR/pkg ]; then
-    echo "executing ./all.bash ..."
+    _trace "executing ./all.bash ..."
     { . ./all.bash; }
-    echo "Done"
+    _trace "Done"
 else
-    echo "executed ./all.bash"
+    _trace "executed ./all.bash"
 fi
 
 # Set environment variables
 cd $CURDIR
 { . ./gosetting.sh $g_USER $g_INSTALL_DIR; }
 
-echo ""
-echo "ALL DONE"
-echo ""
+_trace ""
+_trace "ALL DONE"
+_trace ""
 
