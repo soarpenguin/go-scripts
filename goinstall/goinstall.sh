@@ -5,7 +5,7 @@
 
 # const
 export PS4='+ [`basename ${BASH_SOURCE[0]}`:$LINENO ${FUNCNAME[0]} \D{%F %T} $$ ] '
-CURDIR=$(cd "$(dirname "$0")"; pwd);
+CURDIR=$(cd "$(dirname "$0")"; pwd)
 MYNAME="${0##*/}"
 
 g_INSTALL_DIR="/usr/local/go"
@@ -92,16 +92,22 @@ _parse_options()
 
     case ${#argv[@]} in
         1)
-            command -v greadlink >/dev/null 2>&1 && g_INSTALL_DIR=$(greadlink -f "${argv[0]}") || g_INSTALL_DIR=$(readlink -f "${argv[0]}")
+            g_INSTALL_DIR=$(readlinkf "${argv[0]}")
             ;;
         0|*)
             _usage 1>&2
             return ${RET_FAIL}
-    ;;
+            ;;
     esac
 }
 
 ################################## main route #################################
+command -v go >/dev/null 2>&1
+if [ $? -eq 0 ]; then
+    _trace "go installed in $(which go)"
+    exit $RET_OK
+fi
+
 _parse_options "${@}" || _usage
 
 if [ x"$g_USER" == "x" ]; then
@@ -113,7 +119,7 @@ if [ x"$g_USER" == "x" ]; then
     fi
 fi
 
-ret=`id -u $g_USER`
+id -u "$g_USER" &>/dev/null
 if [ $? -ne 0 ]; then
     _print_fatal "User $g_USER is not exist."
     exit ${RET_FAIL}
