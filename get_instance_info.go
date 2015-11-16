@@ -18,7 +18,8 @@ const (
 )
 
 func isIP(ip string) (b bool) {
-	if m, _ := regexp.MatchString("^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}$", ip); !m {
+	ippattern := "^((2[0-4]\\d|25[0-5]|[01]?\\d\\d?)\\.){3}(2[0-4]\\d|25[0-5]|[01]?\\d\\d?)$"
+	if m, _ := regexp.MatchString(ippattern, ip); !m {
 		return false
 	}
 	return true
