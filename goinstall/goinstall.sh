@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright 2013 Yasutaka Kawamoto. All rights reserved.
+# Copyright 2015 Yasutaka Kawamoto / Soarpenguin. All rights reserved.
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
@@ -132,18 +132,18 @@ fi
 if [ -f /etc/lsb-release ]; then
     . /etc/lsb-release
     dlcmd="apt-get -y"
-    homedir="/home/$1"
+    homedir="/home/$g_USER"
 elif [ -f /etc/debian_version ]; then
     dlcmd="apt-get -y"
-    homedir="/home/$1"
+    homedir="/home/$g_USER"
 elif [ -f /etc/redhat-release ]; then
     dlcmd="yum -y"
-    homedir="/home/$1"
+    homedir="/home/$g_USER"
 elif [ -f /etc/system-release ]; then
     dlcmd="yum -y"
-    homedir="/home/$1"
+    homedir="/home/$g_USER"
 elif [ `uname` = "Darwin" ]; then #for Mac
-    homedir="/Users/$1"
+    homedir="/Users/$g_USER"
 else
     _print_fatal "not Linux or Mac"
     exit 1
@@ -187,15 +187,26 @@ fi
 # Install Go
 if [ -d $g_INSTALL_DIR ]
 then
-    _trace "go dir is existed."
+    _trace "Go dir is existed."
 else
-    _trace "downloading go ..."
+    _trace "Downloading go ..."
     `hg clone -u release https://code.google.com/p/go $g_INSTALL_DIR`
+    if [ $? -ne 0 ]; then
+        _print_fatal "Downloading go failed ..."
+        _trace "Try: hg clone -u release https://code.google.com/p/go $g_INSTALL_DIR"
+        exit ${RET_FAIL}
+    fi
     _trace "Done"
 fi
 
 #echo "move directory to go/src."
-cd $g_INSTALL_DIR/src/
+if [ -d $g_INSTALL_DIR/src/ ]; then
+    cd $g_INSTALL_DIR/src
+else
+    _print_fatal "Check the dir of $g_INSTALL_DIR/src."
+    exit ${RET_FAIL}
+fi
+
 if  ! [ -d $g_INSTALL_DIR/bin -a -d $g_INSTALL_DIR/pkg ]; then
     _trace "executing ./all.bash ..."
     { . ./all.bash; }

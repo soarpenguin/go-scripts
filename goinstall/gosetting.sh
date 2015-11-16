@@ -1,5 +1,5 @@
 #!/bin/sh 
-# Copyright 2013 Yasutaka Kawamoto. All rights reserved.
+# Copyright 2015 Yasutaka Kawamoto / Soarpenguin. All rights reserved.
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
@@ -11,52 +11,80 @@ if [ $# -lt 2 ];then
    exit 1
 fi
 
+user="$1"
 installdir="$2"
 
 os=`uname`
 if [ $os = "Linux" ]; then
 #    echo "Linux"
-    userdir="/home/$1"
+    userdir="/home/$user"
 elif [ $os = "Darwin" ]; then
 #    echo "Mac"
-    userdir="/Users/$1"
+    userdir="/Users/$user"
 else
     echo "not Linux or Mac"
     echo "Exit."
     exit 1
 fi
 
+check_gopath() {
+    local shrc=$1
 
-set_bash(){
-	#export GOOS=darwin
-	#export GOARCH=amd64
-	echo "export GOROOT=$installdir" >> $userdir/.bashrc
-	echo "export GOBIN=$installdir/bin" >> $userdir/.bashrc
-	echo "export PATH=$installdir/bin:$PATH" >> $userdir/.bashrc
+    if [ "x$shrc" = "x" ]; then
+        echo "Please provide sh rc file."
+        exit 1
+    fi
+
+    `grep -i GOPATH $shrc &>/dev/null`
+    return $?
+}
+
+set_shrc() {
+    local shrc=$1
+
+    if [ "x$shrc" = "x" ]; then
+        echo "Please provide sh rc file."
+        exit 1
+    fi
+
+    #check_gopath $shrc && return 0
+
+    echo "export GOROOT=$installdir" >>  $shrc
+    echo "export GOBIN=$installdir/bin" >>  $shrc
+    echo "export PATH=$installdir/bin:\$PATH" >>  $shrc
 }
 
 set_tcsh(){
-	echo "setenv GOROOT $installdir" >>  $userdir/$shrc
-	echo "setenv GOBIN $installdir/bin" >>  $userdir/$shrc
-	echo "setenv PATH $installdir/bin:$PATH" >>  $userdir/$shrc
-}
+    local shrc=$1
 
+    check_gopath $shrc && return 0
+
+    echo "setenv GOROOT $installdir" >>  $shrc
+    echo "setenv GOBIN $installdir/bin" >>  $shrc
+    echo "setenv PATH $installdir/bin:\$PATH" >>  $shrc
+}
 
 sh=`echo $SHELL`
 if [ $sh = "/bin/bash" ]; then
-	echo "bash"
-	set_bash $1
-	. /home/$1/.bashrc
+    echo "bash"
+    shrc=".bashrc"
+    set_shrc "${userdir}/.bashrc"
+    . "${userdir}/.bashrc"
 elif [ $sh = "/bin/tcsh" -o $sh = "/bin/csh" ]; then
-	echo "tcsh"
-	if [ $sh = "/bin/tcsh" ];then
-		shrc=".tcshrc"
-	elif [ $sh = "/bin/csh" ]; then
-		shrc=".cshrc"
-	fi
-	set_tcsh $1
+    echo "tcsh"
+    if [ $sh = "/bin/tcsh" ];then
+        shrc=".tcshrc"
+    elif [ $sh = "/bin/csh" ]; then
+        shrc=".cshrc"
+    fi
+    set_tcsh "${userdir}/$shrc"
+elif [ $sh = "/bin/zsh" ];then
+    echo "zsh"
+    shrc=".zshrc"
+    set_shrc "${userdir}/.zshrc"
+    . "${userdir}/.zshrc"
 else
-	echo "other"
+    echo "other"
 fi
 
 
