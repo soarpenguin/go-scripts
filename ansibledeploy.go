@@ -38,6 +38,12 @@ func main() {
 
 	single_mode := flag.Bool("s", false, "Single mode in deploy one host for observation.")
 	concurrent := flag.Int("c", 1, "Process nummber for run the command at same time.")
+	program_version := flag.String("V", "", "Module program version for deploy.")
+	extra_vars := flag.String("e", "", "Extra vars for ansible-playbook.")
+	section := flag.String("S", "", "Inventory section for distinguish hosts or tags.")
+	retry_file := flag.String("r", "", "Retry file for ansible redo failed hosts.")
+	inventory_file := flag.String("i", "", "Specify inventory host file.")
+	operation_file := flag.String("f", "", "File name for module configure(yml format).")
 	version := flag.Bool("v", false, "show version")
 
 	flag.Parse()
@@ -51,5 +57,12 @@ func main() {
 
 	fmt.Printf("single_mode   : %s\n", *single_mode)
 	fmt.Printf("concurrent   : %s\n", *concurrent)
+	fmt.Printf("program_version   : %s\n", *program_version)
+	fmt.Printf("extra_vars   : %s\n", *extra_vars)
+	fmt.Printf("section   : %s\n", *section)
+	fmt.Printf("retry_file   : %s\n", *retry_file)
+	fmt.Printf("inventory_file   : %s\n", *inventory_file)
+	fmt.Printf("operation_file   : %s\n", *operation_file)
 	fmt.Printf("action   : %s\n", action)
+
 }
