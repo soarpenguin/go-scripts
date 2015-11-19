@@ -102,13 +102,13 @@ _parse_options()
 }
 
 ################################## main route #################################
+_parse_options "${@}" || _usage
+
 command -v go >/dev/null 2>&1
 if [ $? -eq 0 ]; then
     _trace "go installed in $(which go)"
     exit $RET_OK
 fi
-
-_parse_options "${@}" || _usage
 
 if [ x"$g_USER" == "x" ]; then
     g_USER="$USER"
