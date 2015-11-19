@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	//"path/filepath"
+	"path/filepath"
 	//"runtime"
-	//"strings"
+	"strings"
 )
 
 const (
@@ -20,7 +20,7 @@ const (
 
 const (
 	retOK = iota
-	retFaied
+	retFailed
 	retInvaidArgs
 )
 
@@ -34,7 +34,49 @@ func execCmd(cmd string, shell bool) (out []byte, err error) {
 	return out, err
 }
 
+func checkExistFiles(files ...string) bool {
+	for _, file := range files {
+		file = strings.TrimSpace(file)
+		if _, err := isExists(file); err != nil {
+			fmt.Printf("[ERROR] check %s with %s.\n", file, err)
+			return false
+		}
+	}
+	return true
+}
+
+func isExists(file string) (ret bool, err error) {
+	// equivalent to Python's `if not os.path.exists(filename)`
+	if _, err := os.Stat(file); os.IsNotExist(err) {
+		return false, err
+	} else {
+		return true, nil
+	}
+}
+
+func doUpdateAction(action string, inventory_file string, operation_file string,
+	version string, concurrent int) {
+
+	loginfo := "doUpdateAction"
+	if action != "update" || inventory_file == "" || operation_file == "" {
+		fmt.Printf("Error parameters in %s\n", loginfo)
+		os.Exit(retFailed)
+	}
+
+}
+
+func doDeployAction(action string, inventory_file string, operation_file string,
+	singlemode bool, concurrent int, retry_file string, ext_vars string, section string) {
+
+	loginfo := "doDeployAction"
+	if action != "deploy" || inventory_file == "" || operation_file == "" {
+		fmt.Printf("Error parameters in %s", loginfo)
+		os.Exit(retFailed)
+	}
+}
+
 func main() {
+	var err error
 
 	single_mode := flag.Bool("s", false, "Single mode in deploy one host for observation.")
 	concurrent := flag.Int("c", 1, "Process nummber for run the command at same time.")
@@ -55,14 +97,44 @@ func main() {
 
 	var action string = flag.Arg(0)
 
-	fmt.Printf("single_mode   : %s\n", *single_mode)
-	fmt.Printf("concurrent   : %s\n", *concurrent)
-	fmt.Printf("program_version   : %s\n", *program_version)
-	fmt.Printf("extra_vars   : %s\n", *extra_vars)
-	fmt.Printf("section   : %s\n", *section)
-	fmt.Printf("retry_file   : %s\n", *retry_file)
-	fmt.Printf("inventory_file   : %s\n", *inventory_file)
-	fmt.Printf("operation_file   : %s\n", *operation_file)
-	fmt.Printf("action   : %s\n", action)
+	if *operation_file == "" || *inventory_file == "" {
+		fmt.Printf("[Error] operation and inventory file must provide.\n\n")
+		flag.Usage()
+		os.Exit(retFailed)
+	} else {
+		ret := checkExistFiles(*operation_file, *inventory_file)
+		if !ret {
+			fmt.Printf("[Error] check exists of operation and inventory file.\n")
+			os.Exit(retInvaidArgs)
+		}
+	}
 
+	if *operation_file, err = filepath.Abs(*operation_file); err != nil {
+		panic(err)
+	}
+
+	if *inventory_file, err = filepath.Abs(*inventory_file); err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("[%s] action on [%s]\n", action, *operation_file)
+	switch action {
+	case "check":
+		fmt.Printf("-------------Now doing in action: %s\n", action)
+		fmt.Println("check configure file.")
+	case "update":
+		fmt.Printf("-------------Now doing in action: %s\n", action)
+		fmt.Println("update code.")
+		doUpdateAction(action, *inventory_file, *operation_file, *program_version, *concurrent)
+	case "deploy":
+		fmt.Printf("-------------Now doing in action: %s\n", action)
+		fmt.Println("deploy code.")
+		doDeployAction(action, *inventory_file, *operation_file, *single_mode, *concurrent, *retry_file, *extra_vars, *section)
+	case "rollback":
+		fmt.Printf("-------------Now doing in action: %s\n", action)
+		fmt.Println("rollback code.")
+	default:
+		fmt.Println("Not supported action: %s\n", action)
+		os.Exit(retFailed)
+	}
 }
