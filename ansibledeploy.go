@@ -6,8 +6,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	//"runtime"
 	"strings"
+
+	// thirdparty lib
+	"github.com/go-ini/ini"
 )
 
 const (
@@ -75,8 +77,18 @@ func doDeployAction(action string, inventory_file string, operation_file string,
 	}
 }
 
+var Usage = func() {
+	fmt.Fprintf(os.Stdout, "Usage of %s: [options] action\n", os.Args[0])
+	flag.PrintDefaults()
+
+	fmt.Fprintf(os.Stdout, "\n  action    action to do required:(check,update,deploy,rollback).\n")
+}
+
 func main() {
 	var err error
+	var ini_cfg *ini.File
+
+	flag.Usage = Usage
 
 	single_mode := flag.Bool("s", false, "Single mode in deploy one host for observation.")
 	concurrent := flag.Int("c", 1, "Process nummber for run the command at same time.")
@@ -109,12 +121,23 @@ func main() {
 		}
 	}
 
+	if action == "" {
+		fmt.Printf("[Error] action(check,update,deploy,rollback) must provide one.\n\n")
+		flag.Usage()
+		os.Exit(retFailed)
+	}
+
 	if *operation_file, err = filepath.Abs(*operation_file); err != nil {
 		panic(err)
 	}
 
 	if *inventory_file, err = filepath.Abs(*inventory_file); err != nil {
 		panic(err)
+	} else {
+		ini_cfg, err = ini.Load(*inventory_file)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	fmt.Printf("[%s] action on [%s]\n", action, *operation_file)
@@ -122,6 +145,7 @@ func main() {
 	case "check":
 		fmt.Printf("-------------Now doing in action: %s\n", action)
 		fmt.Println("check configure file.")
+		ini_cfg.WriteTo(os.Stdout)
 	case "update":
 		fmt.Printf("-------------Now doing in action: %s\n", action)
 		fmt.Println("update code.")
