@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,6 +11,8 @@ import (
 
 	// thirdparty lib
 	"github.com/go-ini/ini"
+	"github.com/smallfish/simpleyaml"
+	//"gopkg.in/yaml.v2"
 )
 
 const (
@@ -78,7 +81,7 @@ func doDeployAction(action string, inventory_file string, operation_file string,
 }
 
 var Usage = func() {
-	fmt.Fprintf(os.Stdout, "Usage of %s: [options] action\n", os.Args[0])
+	fmt.Fprintf(os.Stdout, "Usage of %s [options] action\n", os.Args[0])
 	flag.PrintDefaults()
 
 	fmt.Fprintf(os.Stdout, "\n  action    action to do required:(check,update,deploy,rollback).\n")
@@ -137,6 +140,22 @@ func main() {
 		ini_cfg, err = ini.Load(*inventory_file)
 		if err != nil {
 			panic(err)
+		}
+	}
+
+	if *operation_file, err = filepath.Abs(*operation_file); err != nil {
+		panic(err)
+	} else {
+		var data []byte
+		f, err := os.Open(*operation_file)
+		if data, err = ioutil.ReadAll(f); err != nil {
+			panic(err)
+		} else {
+			//yml_cfg, err = i.Load(*inventory_file)
+			_, err = simpleyaml.NewYaml(data)
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 
