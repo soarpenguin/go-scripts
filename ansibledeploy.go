@@ -113,19 +113,19 @@ func main() {
 	var action string = flag.Arg(0)
 
 	if *operation_file == "" || *inventory_file == "" {
-		fmt.Printf("[Error] operation and inventory file must provide.\n\n")
+		fmt.Printf("[ERROR] operation and inventory file must provide.\n\n")
 		flag.Usage()
 		os.Exit(retFailed)
 	} else {
 		ret := checkExistFiles(*operation_file, *inventory_file)
 		if !ret {
-			fmt.Printf("[Error] check exists of operation and inventory file.\n")
+			fmt.Printf("[ERROR] check exists of operation and inventory file.\n")
 			os.Exit(retInvaidArgs)
 		}
 	}
 
 	if action == "" {
-		fmt.Printf("[Error] action(check,update,deploy,rollback) must provide one.\n\n")
+		fmt.Printf("[ERROR] action(check,update,deploy,rollback) must provide one.\n\n")
 		flag.Usage()
 		os.Exit(retFailed)
 	}
@@ -151,6 +151,7 @@ func main() {
 		if data, err = ioutil.ReadAll(f); err != nil {
 			panic(err)
 		} else {
+			defer f.Close() // f.Close will run when we're finished.
 			//yml_cfg, err = i.Load(*inventory_file)
 			_, err = simpleyaml.NewYaml(data)
 			if err != nil {
