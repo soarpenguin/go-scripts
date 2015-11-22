@@ -8,6 +8,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	// thirdparty lib
+	"github.com/mgutz/ansi"
 )
 
 const (
@@ -29,10 +32,14 @@ func stringInSlice(a string, list []string) bool {
 }
 
 func isProcessOK(err error) {
+	var msg string
+
 	if err != nil {
-		fmt.Println("     [FAIL]")
+		msg = ansi.Color("     [FAIL]", "red+b")
+		fmt.Println(msg)
 	} else {
-		fmt.Println("     [OK]")
+		msg = ansi.Color("     [OK]", "green+b")
+		fmt.Println(msg)
 	}
 }
 
@@ -140,8 +147,9 @@ func main() {
 			if *op_file, err = filepath.Abs(*op_file); err != nil {
 				panic(err)
 			}
-			//dealWithFile(*op_file, cmd)
 			dealFileWithWhiteList(*op_file, cmd, suffixArray)
+		} else {
+			panic(err)
 		}
 	} else if *op_path != "" {
 		if _, err := isExists(*op_path); err == nil {
@@ -149,6 +157,8 @@ func main() {
 				panic(err)
 			}
 			dealDirWithWhiteList(*op_path, cmd, suffixArray)
+		} else {
+			panic(err)
 		}
 	}
 }
