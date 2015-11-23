@@ -40,10 +40,12 @@ func execCmd(cmd string, shell bool) (out []byte, err error) {
 }
 
 func checkExistFiles(files ...string) bool {
+	loginfo := "checkExistFiles"
+
 	for _, file := range files {
 		file = strings.TrimSpace(file)
 		if _, err := isExists(file); err != nil {
-			fmt.Printf("[ERROR] check %s with %s.\n", file, err)
+			fmt.Printf("[ERROR] %s() - %s.\n", loginfo, err)
 			return false
 		}
 	}
@@ -57,6 +59,22 @@ func isExists(file string) (ret bool, err error) {
 	} else {
 		return true, nil
 	}
+}
+
+func displayYamlFile(file string) {
+	loginfo := "displayYamlFile"
+
+	if _, err := isExists(file); err != nil {
+		fmt.Printf("[ERROR] %s() - %s.\n", loginfo, err)
+		panic(err)
+	}
+
+	contents, err := ioutil.ReadFile(file)
+	if err != nil {
+		panic(err)
+	}
+
+	println(string(contents))
 }
 
 func doUpdateAction(action string, inventory_file string, operation_file string,
@@ -166,6 +184,8 @@ func main() {
 		fmt.Printf("-------------Now doing in action: %s\n", action)
 		fmt.Println("check configure file.")
 		ini_cfg.WriteTo(os.Stdout)
+		fmt.Println("")
+		displayYamlFile(*operation_file)
 	case "update":
 		fmt.Printf("-------------Now doing in action: %s\n", action)
 		fmt.Println("update code.")
