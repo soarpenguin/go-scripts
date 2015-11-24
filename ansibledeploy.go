@@ -77,6 +77,25 @@ func displayYamlFile(file string) {
 	println(string(contents))
 }
 
+func getSingleHostname(file string, section string) string {
+	var ini_cfg *ini.File
+	loginfo := "getSingleHostname"
+
+	hostname := ""
+
+	ini_cfg, err := ini.Load(file)
+	if err != nil || ini_cfg == nil {
+		fmt.Printf("[ERROR] %s() - %s.\n", loginfo, err)
+		return hostname
+	}
+
+	items, err := ini_cfg.GetSection(section)
+
+	fmt.Printf("%v\n", items)
+	fmt.Printf("%s\n", hostname)
+	return hostname
+}
+
 func doUpdateAction(action string, inventory_file string, operation_file string,
 	version string, concurrent int) {
 
@@ -189,6 +208,8 @@ func main() {
 	case "update":
 		fmt.Printf("-------------Now doing in action: %s\n", action)
 		fmt.Println("update code.")
+		hostname := getSingleHostname(*inventory_file, "all")
+		fmt.Println("%s\n.", hostname)
 		doUpdateAction(action, *inventory_file, *operation_file, *program_version, *concurrent)
 	case "deploy":
 		fmt.Printf("-------------Now doing in action: %s\n", action)
