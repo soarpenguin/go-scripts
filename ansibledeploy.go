@@ -91,8 +91,54 @@ func getSingleHostname(file string, section string) string {
 
 	items, err := ini_cfg.GetSection(section)
 
-	fmt.Printf("%v\n", items)
-	fmt.Printf("%s\n", hostname)
+	for _, v := range items.KeyStrings() {
+		v = strings.TrimSpace(v)
+
+		if v != "" {
+			tokens := strings.Split(v, " ")
+
+			if len(tokens) == 0 {
+				continue
+			}
+
+			host := tokens[0]
+
+			if strings.HasPrefix(host, "(") && strings.HasSuffix(host, ")") {
+				srp := strings.NewReplacer("(", "", ")", "")
+				host = srp.Replace(host)
+			} else if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
+				srp := strings.NewReplacer("[", "", "]", "")
+				host = srp.Replace(host)
+			}
+
+			tokens = strings.Split(host, " ")
+			if len(tokens) == 0 {
+				continue
+			}
+			hostname = tokens[0]
+
+			// Three cases to check:
+			// 0. A hostname that contains a range pesudo-code and a port
+			// 1. A hostname that contains just a port
+			if strings.Count(hostname, ":") > 1 {
+				// Possible an IPv6 address, or maybe a host line with multiple ranges
+				// IPv6 with Port  XXX:XXX::XXX.port
+				// FQDN            foo.example.com
+				if strings.Count(hostname, ".") == 1 {
+					hostname = hostname[0:strings.LastIndex(hostname, ".")]
+				}
+			} else if (strings.Count(hostname, "[") > 0 && strings.Count(hostname, "]") > 0 &&
+				(strings.LastIndex(hostname, "]") < strings.LastIndex(hostname, ":"))) ||
+				((strings.Count(hostname, "]") <= 0) && (strings.Count(hostname, ":") > 0)) {
+				hostname = hostname[0:strings.LastIndex(hostname, ":")]
+			}
+		}
+
+		if hostname != "" {
+			break
+		}
+	}
+
 	return hostname
 }
 
@@ -100,21 +146,70 @@ func doUpdateAction(action string, inventory_file string, operation_file string,
 	version string, concurrent int) {
 
 	loginfo := "doUpdateAction"
+	var cmd, ext_vars string
+
 	if action != "update" || inventory_file == "" || operation_file == "" {
 		fmt.Printf("Error parameters in %s\n", loginfo)
 		os.Exit(retFailed)
 	}
 
+	if version != "" {
+		version = strings.TrimSpace(version)
+		ext_vars = fmt.Sprintf(" version=%s ", version)
+	} else {
+		ext_vars = ""
+	}
+
+	if ext_vars != "" {
+		cmd = fmt.Sprintf("%s -i %s %s --extra-vars \"forks=%d hosts=%s %s\" -t %s -f %d ",
+			ANSIBLE_CMD, inventory_file, operation_file, concurrent, action, ext_vars, action, concurrent)
+	} else {
+		cmd = fmt.Sprintf("%s -i %s %s --extra-vars \"forks=%d hosts=%s \" -t %s -f %d ",
+			ANSIBLE_CMD, inventory_file, operation_file, concurrent, action, action, concurrent)
+	}
+
+	fmt.Printf("%s\n", cmd)
 }
 
 func doDeployAction(action string, inventory_file string, operation_file string,
 	singlemode bool, concurrent int, retry_file string, ext_vars string, section string) {
 
 	loginfo := "doDeployAction"
+	var cmd string
+
 	if action != "deploy" || inventory_file == "" || operation_file == "" {
 		fmt.Printf("Error parameters in %s", loginfo)
 		os.Exit(retFailed)
 	}
+
+	section = strings.TrimSpace(section)
+	if section != "" {
+		action = section
+	}
+
+	if ext_vars != "" {
+		cmd = fmt.Sprintf("%s -i %s %s --extra-vars \"forks=%d hosts=%s %s\" -t %s -f %d ",
+			ANSIBLE_CMD, inventory_file, operation_file, concurrent, action, ext_vars, action, concurrent)
+	} else {
+		cmd = fmt.Sprintf("%s -i %s %s --extra-vars \"forks=%d hosts=%s \" -t %s -f %d ",
+			ANSIBLE_CMD, inventory_file, operation_file, concurrent, action, action, concurrent)
+	}
+
+	if singlemode {
+		hostname := getSingleHostname(inventory_file, action)
+		fmt.Printf("%s\n", hostname)
+
+		if hostname != "" {
+			cmd = fmt.Sprintf("%s -l %s ", cmd, strings.TrimSpace(hostname))
+		} else {
+			fmt.Printf("Error: %s() get single hostname from %s failed in single mode.", loginfo, retry_file)
+			os.Exit(retFailed)
+		}
+	} else if retry_file != "" {
+		fmt.Printf("%s\n", retry_file)
+	}
+
+	fmt.Printf("%s\n", cmd)
 }
 
 var Usage = func() {
@@ -208,8 +303,6 @@ func main() {
 	case "update":
 		fmt.Printf("-------------Now doing in action: %s\n", action)
 		fmt.Println("update code.")
-		hostname := getSingleHostname(*inventory_file, "all")
-		fmt.Println("%s\n.", hostname)
 		doUpdateAction(action, *inventory_file, *operation_file, *program_version, *concurrent)
 	case "deploy":
 		fmt.Printf("-------------Now doing in action: %s\n", action)
