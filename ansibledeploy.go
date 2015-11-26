@@ -222,11 +222,17 @@ func doDeployAction(action string, inventory_file string, operation_file string,
 		if hostname != "" {
 			cmd = fmt.Sprintf("%s -l %s ", cmd, strings.TrimSpace(hostname))
 		} else {
-			fmt.Printf("Error: %s() get single hostname from %s failed in single mode.", loginfo, retry_file)
+			fmt.Printf("Error: %s() get single hostname from %s failed in single mode.", loginfo, inventory_file)
 			os.Exit(retFailed)
 		}
 	} else if retry_file != "" {
 		fmt.Printf("%s\n", retry_file)
+		if _, err := isExists(retry_file); err != nil {
+			fmt.Printf("Error: %s() please check the exists of retry file: %s.\n", loginfo, retry_file)
+			os.Exit(retFailed)
+		} else {
+			cmd = fmt.Sprintf("%s --limit @%s ", cmd, retry_file)
+		}
 	}
 
 	fmt.Printf("%s\n", cmd)
@@ -297,8 +303,10 @@ func main() {
 		os.Exit(retFailed)
 	}
 
-	if *operation_file, err = filepath.Abs(*operation_file); err != nil {
-		panic(err)
+	if *retry_file != "" {
+		if *retry_file, err = filepath.Abs(*retry_file); err != nil {
+			panic(err)
+		}
 	}
 
 	if *inventory_file, err = filepath.Abs(*inventory_file); err != nil {
@@ -344,7 +352,7 @@ func main() {
 		doDeployAction(action, *inventory_file, *operation_file, *single_mode, *concurrent, *retry_file, *extra_vars, *section)
 	case "rollback":
 		fmt.Printf("-------------Now doing in action: %s\n", action)
-		fmt.Println("rollback code.")
+		fmt.Println("rollback action do nothing now.")
 	default:
 		fmt.Printf("Not supported action: %s\n", action)
 		os.Exit(retFailed)
