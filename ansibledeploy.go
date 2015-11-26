@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -19,9 +20,7 @@ const (
 	VERSION = "0.1.0"
 )
 
-const (
-	ANSIBLE_CMD = "/usr/bin/ansible-playbook"
-)
+var ANSIBLE_CMD string = "/usr/bin/ansible-playbook"
 
 const (
 	retOK = iota
@@ -30,9 +29,17 @@ const (
 )
 
 func execCmd(cmd string, shell bool) (out []byte, err error) {
-	fmt.Printf("run command: %s", cmd)
+	fmt.Printf("run command: %s\n", cmd)
 	if shell {
-		out, err = exec.Command("bash", "-c", cmd).Output()
+		//out, err = exec.Command("bash", "-c", cmd).Output()
+		runcmd := exec.Command("bash", "-c", cmd)
+		runcmd.Stdout = os.Stdout
+		runcmd.Stderr = os.Stderr
+		err := runcmd.Start()
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = runcmd.Wait()
 	} else {
 		out, err = exec.Command(cmd).Output()
 	}
@@ -90,8 +97,18 @@ func getSingleHostname(file string, section string) string {
 	}
 
 	items, err := ini_cfg.GetSection(section)
+	if err != nil {
+		fmt.Printf("Error: %s() from %s %s.\n", loginfo, file, err)
+		os.Exit(retFailed)
+	}
 
-	for _, v := range items.KeyStrings() {
+	keystrs := items.KeyStrings()
+	if len(keystrs) <= 0 {
+		fmt.Printf("Error: %s() get single hostname from %s failed.", loginfo, file)
+		os.Exit(retFailed)
+	}
+
+	for _, v := range keystrs {
 		v = strings.TrimSpace(v)
 
 		if v != "" {
@@ -169,6 +186,10 @@ func doUpdateAction(action string, inventory_file string, operation_file string,
 	}
 
 	fmt.Printf("%s\n", cmd)
+	if _, err := execCmd(cmd, true); err != nil {
+		fmt.Printf("%s() with error: %s\n", loginfo, err)
+		os.Exit(retFailed)
+	}
 }
 
 func doDeployAction(action string, inventory_file string, operation_file string,
@@ -197,7 +218,6 @@ func doDeployAction(action string, inventory_file string, operation_file string,
 
 	if singlemode {
 		hostname := getSingleHostname(inventory_file, action)
-		fmt.Printf("%s\n", hostname)
 
 		if hostname != "" {
 			cmd = fmt.Sprintf("%s -l %s ", cmd, strings.TrimSpace(hostname))
@@ -210,6 +230,11 @@ func doDeployAction(action string, inventory_file string, operation_file string,
 	}
 
 	fmt.Printf("%s\n", cmd)
+
+	if _, err := execCmd(cmd, true); err != nil {
+		fmt.Printf("%s() with error: %s\n", loginfo, err)
+		os.Exit(retFailed)
+	}
 }
 
 var Usage = func() {
@@ -222,6 +247,11 @@ var Usage = func() {
 func main() {
 	var err error
 	var ini_cfg *ini.File
+	var action string
+
+	if _, err = isExists(ANSIBLE_CMD); err != nil {
+		ANSIBLE_CMD = "ansible-playbook"
+	}
 
 	flag.Usage = Usage
 
@@ -230,6 +260,7 @@ func main() {
 	program_version := flag.String("V", "", "Module program version for deploy.")
 	extra_vars := flag.String("e", "", "Extra vars for ansible-playbook.")
 	section := flag.String("S", "", "Inventory section for distinguish hosts or tags.")
+	opt_action := flag.String("action", "", "Action to do required:(check,update,deploy,rollback).")
 	retry_file := flag.String("r", "", "Retry file for ansible redo failed hosts.")
 	inventory_file := flag.String("i", "", "Specify inventory host file.")
 	operation_file := flag.String("f", "", "File name for module configure(yml format).")
@@ -242,7 +273,11 @@ func main() {
 		os.Exit(retOK)
 	}
 
-	var action string = flag.Arg(0)
+	if *opt_action == "" {
+		action = flag.Arg(0)
+	} else {
+		action = *opt_action
+	}
 
 	if *operation_file == "" || *inventory_file == "" {
 		fmt.Printf("[ERROR] operation and inventory file must provide.\n\n")
@@ -296,23 +331,22 @@ func main() {
 	switch action {
 	case "check":
 		fmt.Printf("-------------Now doing in action: %s\n", action)
-		fmt.Println("check configure file.")
 		ini_cfg.WriteTo(os.Stdout)
 		fmt.Println("")
 		displayYamlFile(*operation_file)
 	case "update":
 		fmt.Printf("-------------Now doing in action: %s\n", action)
-		fmt.Println("update code.")
 		doUpdateAction(action, *inventory_file, *operation_file, *program_version, *concurrent)
 	case "deploy":
-		fmt.Printf("-------------Now doing in action: %s\n", action)
-		fmt.Println("deploy code.")
+		fmt.Printf("-------------Inventory file is: %s\n", *inventory_file)
+		ini_cfg.WriteTo(os.Stdout)
+		fmt.Printf("-------------Now doing in action:[%s], single mode:[%t]\n", action, *single_mode)
 		doDeployAction(action, *inventory_file, *operation_file, *single_mode, *concurrent, *retry_file, *extra_vars, *section)
 	case "rollback":
 		fmt.Printf("-------------Now doing in action: %s\n", action)
 		fmt.Println("rollback code.")
 	default:
-		fmt.Println("Not supported action: %s\n", action)
+		fmt.Printf("Not supported action: %s\n", action)
 		os.Exit(retFailed)
 	}
 }
