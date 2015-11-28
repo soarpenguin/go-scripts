@@ -7,12 +7,15 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	// thirdparty lib
 	"github.com/go-ini/ini"
 	"github.com/smallfish/simpleyaml"
+	"github.com/soarpenguin/log4go"
 	//"gopkg.in/yaml.v2"
 )
 
@@ -21,12 +24,63 @@ const (
 )
 
 var ANSIBLE_CMD string = "/usr/bin/ansible-playbook"
+var gLogger log4go.Logger
 
 const (
 	retOK = iota
 	retFailed
 	retInvaidArgs
 )
+
+//de-init for all
+func deinitLogger() {
+	if nil != gLogger {
+		gLogger.Close()
+		gLogger = nil
+	}
+}
+
+//init for logger
+func initLogger(log4file bool) {
+	var filenameOnly string
+	var logFilename string
+
+	if gLogger != nil {
+		gLogger.Close()
+		gLogger = nil
+	}
+
+	filenameOnly = GetCurFilename()
+	logFilename = filenameOnly + ".log"
+
+	gLogger = make(log4go.Logger)
+	//for console
+	gLogger.AddFilter("stdout", log4go.INFO, log4go.NewConsoleLogWriter())
+	//for log file
+	if log4file {
+		if _, err := os.Stat(logFilename); err == nil {
+			os.Remove(logFilename)
+		}
+		gLogger.AddFilter("logfile", log4go.FINEST, log4go.NewFileLogWriter(logFilename, false))
+	}
+
+	return
+}
+
+// GetCurFilename
+// Get current file name, without suffix
+func GetCurFilename() string {
+	var filenameWithSuffix string
+	var fileSuffix string
+	var filenameOnly string
+
+	_, fulleFilename, _, _ := runtime.Caller(0)
+	filenameWithSuffix = path.Base(fulleFilename)
+	fileSuffix = path.Ext(filenameWithSuffix)
+	filenameOnly = strings.TrimSuffix(filenameWithSuffix, fileSuffix)
+
+	return filenameOnly
+}
 
 func execCmd(cmd string, shell bool) (out []byte, err error) {
 	fmt.Printf("run command: %s\n", cmd)
@@ -261,6 +315,7 @@ func main() {
 
 	flag.Usage = Usage
 
+	log4file := flag.Bool("log4file", false, "Specify log in file for output.")
 	single_mode := flag.Bool("s", false, "Single mode in deploy one host for observation.")
 	concurrent := flag.Int("c", 1, "Process nummber for run the command at same time.")
 	program_version := flag.String("V", "", "Module program version for deploy.")
@@ -270,7 +325,7 @@ func main() {
 	retry_file := flag.String("r", "", "Retry file for ansible redo failed hosts.")
 	inventory_file := flag.String("i", "", "Specify inventory host file.")
 	operation_file := flag.String("f", "", "File name for module configure(yml format).")
-	version := flag.Bool("v", false, "show version")
+	version := flag.Bool("v", false, "Show version")
 
 	flag.Parse()
 
@@ -285,27 +340,35 @@ func main() {
 		action = *opt_action
 	}
 
+	initLogger(*log4file)
+	defer deinitLogger()
+
 	if *operation_file == "" || *inventory_file == "" {
-		fmt.Printf("[ERROR] operation and inventory file must provide.\n\n")
+		fmt.Printf("Not supported action: %s\n", action)
+		//gLogger.Error("operation and inventory file must provide.\n")
 		flag.Usage()
 		os.Exit(retFailed)
 	} else {
 		ret := checkExistFiles(*operation_file, *inventory_file)
 		if !ret {
 			fmt.Printf("[ERROR] check exists of operation and inventory file.\n")
+			//gLogger.Error("check exists of operation and inventory file.\n")
 			os.Exit(retInvaidArgs)
 		}
 	}
 
 	if action == "" {
 		fmt.Printf("[ERROR] action(check,update,deploy,rollback) must provide one.\n\n")
+		//gLogger.Error("action(check,update,deploy,rollback) must provide one.\n")
 		flag.Usage()
-		os.Exit(retFailed)
+		os.Exit(retInvaidArgs)
 	}
 
 	if *retry_file != "" {
 		if *retry_file, err = filepath.Abs(*retry_file); err != nil {
 			panic(fmt.Errorf("get Abs path of %s failed: %s\n", *retry_file, err))
+			//gLogger.Error("get Abs path of %s failed: %s\n", *retry_file, err)
+			os.Exit(retInvaidArgs)
 		}
 	}
 
@@ -336,25 +399,31 @@ func main() {
 	}
 
 	fmt.Printf("[%s] action on [%s]\n", action, *operation_file)
+	//gLogger.Info("[%s] action on [%s]\n", action, *operation_file)
 	switch action {
 	case "check":
 		fmt.Printf("-------------Now doing in action: %s\n", action)
+		//gLogger.Info("-------------Now doing in action: %s\n", action)
 		ini_cfg.WriteTo(os.Stdout)
 		fmt.Println("")
 		displayYamlFile(*operation_file)
 	case "update":
 		fmt.Printf("-------------Now doing in action: %s\n", action)
+		//gLogger.Info("-------------Now doing in action: %s\n", action)
 		doUpdateAction(action, *inventory_file, *operation_file, *program_version, *concurrent)
 	case "deploy":
 		fmt.Printf("-------------Inventory file is: %s\n", *inventory_file)
+		//gLogger.Info("-------------Inventory file is: %s\n", *inventory_file)
 		ini_cfg.WriteTo(os.Stdout)
 		fmt.Printf("-------------Now doing in action:[%s], single mode:[%t]\n", action, *single_mode)
 		doDeployAction(action, *inventory_file, *operation_file, *single_mode, *concurrent, *retry_file, *extra_vars, *section)
 	case "rollback":
 		fmt.Printf("-------------Now doing in action: %s\n", action)
+		//gLogger.Info("-------------Now doing in action: %s\n", action)
 		fmt.Println("rollback action do nothing now.")
 	default:
 		fmt.Printf("Not supported action: %s\n", action)
+		//gLogger.Info("Not supported action: %s\n", action)
 		os.Exit(retFailed)
 	}
 }
