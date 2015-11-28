@@ -126,6 +126,7 @@ func main() {
 		os.Exit(retFail)
 	case "darwin", "freebsd":
 		cmd = "/usr/bin/sed -i \"\" \"s/[ ]*$//g\" "
+		//fallthrough
 	default:
 		cmd = "sed -i \"s/[ \t]*$//g\" "
 	}
