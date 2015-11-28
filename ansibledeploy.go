@@ -152,13 +152,13 @@ func getSingleHostname(file string, section string) string {
 
 	items, err := ini_cfg.GetSection(section)
 	if err != nil {
-		fmt.Printf("Error: %s() from %s %s.\n", loginfo, file, err)
+		fmt.Printf("[ERROR] %s() from %s %s.\n", loginfo, file, err)
 		os.Exit(retFailed)
 	}
 
 	keystrs := items.KeyStrings()
 	if len(keystrs) <= 0 {
-		fmt.Printf("Error: %s() get single hostname from %s failed.", loginfo, file)
+		fmt.Printf("[ERROR] %s() get single hostname from %s failed.", loginfo, file)
 		os.Exit(retFailed)
 	}
 
@@ -220,7 +220,7 @@ func doUpdateAction(action string, inventory_file string, operation_file string,
 	var cmd, ext_vars string
 
 	if action != "update" || inventory_file == "" || operation_file == "" {
-		fmt.Printf("Error parameters in %s\n", loginfo)
+		fmt.Printf("[ERROR] Error parameters in %s\n", loginfo)
 		os.Exit(retFailed)
 	}
 
@@ -241,7 +241,7 @@ func doUpdateAction(action string, inventory_file string, operation_file string,
 
 	fmt.Printf("%s\n", cmd)
 	if _, err := execCmd(cmd, true); err != nil {
-		fmt.Printf("%s() with error: %s\n", loginfo, err)
+		fmt.Printf("[ERROR] %s() with error: %s\n", loginfo, err)
 		os.Exit(retFailed)
 	}
 }
@@ -253,7 +253,7 @@ func doDeployAction(action string, inventory_file string, operation_file string,
 	var cmd string
 
 	if action != "deploy" || inventory_file == "" || operation_file == "" {
-		fmt.Printf("Error parameters in %s", loginfo)
+		fmt.Printf("[ERROR] Error parameters in %s", loginfo)
 		os.Exit(retFailed)
 	}
 
@@ -276,13 +276,13 @@ func doDeployAction(action string, inventory_file string, operation_file string,
 		if hostname != "" {
 			cmd = fmt.Sprintf("%s -l %s ", cmd, strings.TrimSpace(hostname))
 		} else {
-			fmt.Printf("Error: %s() get single hostname from %s failed in single mode.", loginfo, inventory_file)
+			fmt.Printf("[ERROR] %s() get single hostname from %s failed in single mode.", loginfo, inventory_file)
 			os.Exit(retFailed)
 		}
 	} else if retry_file != "" {
 		fmt.Printf("%s\n", retry_file)
 		if _, err := isExists(retry_file); err != nil {
-			fmt.Printf("Error: %s() please check the exists of retry file: %s.\n", loginfo, retry_file)
+			fmt.Printf("[ERROR] %s() please check the exists of retry file: %s.\n", loginfo, retry_file)
 			os.Exit(retFailed)
 		} else {
 			cmd = fmt.Sprintf("%s --limit @%s ", cmd, retry_file)
@@ -292,7 +292,7 @@ func doDeployAction(action string, inventory_file string, operation_file string,
 	fmt.Printf("%s\n", cmd)
 
 	if _, err := execCmd(cmd, true); err != nil {
-		fmt.Printf("%s() with error: %s\n", loginfo, err)
+		fmt.Printf("[ERROR] %s() with error: %s\n", loginfo, err)
 		os.Exit(retFailed)
 	}
 }
@@ -344,7 +344,7 @@ func main() {
 	defer deinitLogger()
 
 	if *operation_file == "" || *inventory_file == "" {
-		fmt.Printf("Not supported action: %s\n", action)
+		fmt.Printf("[ERROR] Not supported action: %s\n", action)
 		//gLogger.Error("operation and inventory file must provide.\n")
 		flag.Usage()
 		os.Exit(retFailed)
