@@ -305,16 +305,16 @@ func main() {
 
 	if *retry_file != "" {
 		if *retry_file, err = filepath.Abs(*retry_file); err != nil {
-			panic(err)
+			panic(fmt.Errorf("get Abs path of %s failed: %s\n", *retry_file, err))
 		}
 	}
 
 	if *inventory_file, err = filepath.Abs(*inventory_file); err != nil {
-		panic(err)
+		panic(fmt.Errorf("get Abs path of %s failed: %s\n", *inventory_file, err))
 	} else {
 		ini_cfg, err = ini.Load(*inventory_file)
 		if err != nil {
-			panic(err)
+			panic(fmt.Errorf("ini load conf failed: %s\n", err))
 		}
 	}
 
@@ -324,13 +324,13 @@ func main() {
 		var data []byte
 		f, err := os.Open(*operation_file)
 		if data, err = ioutil.ReadAll(f); err != nil {
-			panic(err)
+			panic(fmt.Errorf("ioutil read yaml conf failed: %s\n", err))
 		} else {
 			defer f.Close() // f.Close will run when we're finished.
 			//yml_cfg, err = i.Load(*inventory_file)
 			_, err = simpleyaml.NewYaml(data)
 			if err != nil {
-				panic(err)
+				panic(fmt.Errorf("load yaml conf failed: %s\n", err))
 			}
 		}
 	}
