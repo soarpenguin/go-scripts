@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 
 	// thirdparty lib
 	"github.com/go-ini/ini"
@@ -82,7 +83,7 @@ func GetCurFilename() string {
 	return filenameOnly
 }
 
-func execCmd(cmd string, shell bool) (out []byte, err error) {
+func execCmd(cmd string, shell bool) (ret int, out []byte, err error) {
 	fmt.Printf("run command: %s\n", cmd)
 	if shell {
 		//out, err = exec.Command("bash", "-c", cmd).Output()
@@ -93,11 +94,22 @@ func execCmd(cmd string, shell bool) (out []byte, err error) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		err = runcmd.Wait()
+
+		if err = runcmd.Wait(); err != nil {
+			if exiterr, ok := err.(*exec.ExitError); ok {
+				// The program has exited with an exit code != 0
+
+				if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
+					ret = int(status)
+				}
+			} else {
+				log.Fatal("cmd.Wait: %v", err)
+			}
+		}
 	} else {
 		out, err = exec.Command(cmd).Output()
 	}
-	return out, err
+	return ret, out, err
 }
 
 func checkExistFiles(files ...string) bool {
@@ -119,6 +131,33 @@ func isExists(file string) (ret bool, err error) {
 		return false, err
 	} else {
 		return true, nil
+	}
+}
+
+func opYamlSyntaxCheck(action, inventory_file, operation_file, ext_vars, section string) {
+	loginfo := "opYamlSyntaxCheck"
+	var check_cmd string
+
+	if _, err := isExists(operation_file); err != nil {
+		fmt.Printf("[ERROR] %s() - %s.\n", loginfo, err)
+		panic(err)
+	}
+
+	// ansible-playbook -i ~/hosts ~/test.yml --extra-vars "forks=1 hosts=update " --syntax-check
+	if ext_vars != "" {
+		check_cmd = fmt.Sprintf("%s -i %s %s --extra-vars \"forks=1 hosts=%s %s\" -t %s --syntax-check ",
+			ANSIBLE_CMD, inventory_file, operation_file, action, ext_vars, action)
+	} else {
+		check_cmd = fmt.Sprintf("%s -i %s %s --extra-vars \"forks=1 hosts=%s \" -t %s --syntax-check ",
+			ANSIBLE_CMD, inventory_file, operation_file, action, action)
+	}
+
+	if ret, _, err := execCmd(check_cmd, true); err != nil {
+		fmt.Printf("[ERROR] %s() - %s.\n", loginfo, err)
+		panic(err)
+	} else if ret != 0 {
+		fmt.Printf("[ERROR] syntax-check failed of %s.\n", operation_file)
+		//os.Exit(retFailed)
 	}
 }
 
@@ -239,8 +278,8 @@ func doUpdateAction(action string, inventory_file string, operation_file string,
 			ANSIBLE_CMD, inventory_file, operation_file, concurrent, action, action, concurrent)
 	}
 
-	fmt.Printf("%s\n", cmd)
-	if _, err := execCmd(cmd, true); err != nil {
+	//fmt.Printf("%s\n", cmd)
+	if _, _, err := execCmd(cmd, true); err != nil {
 		fmt.Printf("[ERROR] %s() with error: %s\n", loginfo, err)
 		os.Exit(retFailed)
 	}
@@ -291,7 +330,7 @@ func doDeployAction(action string, inventory_file string, operation_file string,
 
 	fmt.Printf("%s\n", cmd)
 
-	if _, err := execCmd(cmd, true); err != nil {
+	if _, _, err := execCmd(cmd, true); err != nil {
 		fmt.Printf("[ERROR] %s() with error: %s\n", loginfo, err)
 		os.Exit(retFailed)
 	}
@@ -404,8 +443,10 @@ func main() {
 	case "check":
 		fmt.Printf("-------------Now doing in action: %s\n", action)
 		//gLogger.Info("-------------Now doing in action: %s\n", action)
+		fmt.Printf("inventory: %s\n", *inventory_file)
 		ini_cfg.WriteTo(os.Stdout)
 		fmt.Println("")
+		opYamlSyntaxCheck(action, *inventory_file, *operation_file, *extra_vars, "all")
 		displayYamlFile(*operation_file)
 	case "update":
 		fmt.Printf("-------------Now doing in action: %s\n", action)
@@ -414,6 +455,7 @@ func main() {
 	case "deploy":
 		fmt.Printf("-------------Inventory file is: %s\n", *inventory_file)
 		//gLogger.Info("-------------Inventory file is: %s\n", *inventory_file)
+		fmt.Printf("inventory: %s\n", *inventory_file)
 		ini_cfg.WriteTo(os.Stdout)
 		fmt.Printf("-------------Now doing in action:[%s], single mode:[%t]\n", action, *single_mode)
 		doDeployAction(action, *inventory_file, *operation_file, *single_mode, *concurrent, *retry_file, *extra_vars, *section)
