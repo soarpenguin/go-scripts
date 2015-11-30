@@ -15,7 +15,6 @@ import (
 
 	// thirdparty lib
 	"github.com/go-ini/ini"
-	"github.com/smallfish/simpleyaml"
 	"github.com/soarpenguin/log4go"
 	//"gopkg.in/yaml.v2"
 )
@@ -260,7 +259,7 @@ func doUpdateAction(action string, inventory_file string, operation_file string,
 
 	if action != "update" || inventory_file == "" || operation_file == "" {
 		fmt.Printf("[ERROR] Error parameters in %s\n", loginfo)
-		os.Exit(retFailed)
+		goto proc_error
 	}
 
 	if version != "" {
@@ -281,8 +280,13 @@ func doUpdateAction(action string, inventory_file string, operation_file string,
 	//fmt.Printf("%s\n", cmd)
 	if _, _, err := execCmd(cmd, true); err != nil {
 		fmt.Printf("[ERROR] %s() with error: %s\n", loginfo, err)
-		os.Exit(retFailed)
+		goto proc_error
 	}
+
+	return
+
+proc_error:
+	os.Exit(retFailed)
 }
 
 func doDeployAction(action string, inventory_file string, operation_file string,
@@ -293,7 +297,7 @@ func doDeployAction(action string, inventory_file string, operation_file string,
 
 	if action != "deploy" || inventory_file == "" || operation_file == "" {
 		fmt.Printf("[ERROR] Error parameters in %s", loginfo)
-		os.Exit(retFailed)
+		goto proc_error
 	}
 
 	section = strings.TrimSpace(section)
@@ -316,24 +320,27 @@ func doDeployAction(action string, inventory_file string, operation_file string,
 			cmd = fmt.Sprintf("%s -l %s ", cmd, strings.TrimSpace(hostname))
 		} else {
 			fmt.Printf("[ERROR] %s() get single hostname from %s failed in single mode.", loginfo, inventory_file)
-			os.Exit(retFailed)
+			goto proc_error
 		}
 	} else if retry_file != "" {
 		fmt.Printf("%s\n", retry_file)
 		if _, err := isExists(retry_file); err != nil {
 			fmt.Printf("[ERROR] %s() please check the exists of retry file: %s.\n", loginfo, retry_file)
-			os.Exit(retFailed)
+			goto proc_error
 		} else {
 			cmd = fmt.Sprintf("%s --limit @%s ", cmd, retry_file)
 		}
 	}
 
-	fmt.Printf("%s\n", cmd)
-
 	if _, _, err := execCmd(cmd, true); err != nil {
 		fmt.Printf("[ERROR] %s() with error: %s\n", loginfo, err)
-		os.Exit(retFailed)
+		goto proc_error
 	}
+
+	return
+
+proc_error:
+	os.Exit(retFailed)
 }
 
 var Usage = func() {
@@ -421,20 +428,7 @@ func main() {
 	}
 
 	if *operation_file, err = filepath.Abs(*operation_file); err != nil {
-		panic(err)
-	} else {
-		var data []byte
-		f, err := os.Open(*operation_file)
-		if data, err = ioutil.ReadAll(f); err != nil {
-			panic(fmt.Errorf("ioutil read yaml conf failed: %s\n", err))
-		} else {
-			defer f.Close() // f.Close will run when we're finished.
-			//yml_cfg, err = i.Load(*inventory_file)
-			_, err = simpleyaml.NewYaml(data)
-			if err != nil {
-				panic(fmt.Errorf("load yaml conf failed: %s\n", err))
-			}
-		}
+		panic(fmt.Errorf("get Abs path of %s failed: %s\n", *operation_file, err))
 	}
 
 	fmt.Printf("[%s] action on [%s]\n", action, *operation_file)
