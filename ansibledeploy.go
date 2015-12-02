@@ -345,40 +345,36 @@ proc_error:
 
 var Usage = func() {
 	fmt.Fprintf(os.Stdout, "Usage of %s [options] action\n", os.Args[0])
+	fmt.Println("")
 	flag.PrintDefaults()
 
 	fmt.Fprintf(os.Stdout, "\n  action    action to do required:(check,update,deploy,rollback).\n")
 }
 
-func main() {
-	var err error
-	var ini_cfg *ini.File
-	var action string
+var (
+	concurrent                                       *int
+	log4file, single_mode, version                   *bool
+	program_version, extra_vars, section, opt_action *string
+	retry_file, inventory_file, operation_file       *string
+	action                                           string
+)
 
-	if _, err = isExists(ANSIBLE_CMD); err != nil {
-		ANSIBLE_CMD = "ansible-playbook"
-	}
-
+func init() {
 	flag.Usage = Usage
 
-	log4file := flag.Bool("log4file", false, "Specify log in file for output.")
-	single_mode := flag.Bool("s", false, "Single mode in deploy one host for observation.")
-	concurrent := flag.Int("c", 1, "Process nummber for run the command at same time.")
-	program_version := flag.String("V", "", "Module program version for deploy.")
-	extra_vars := flag.String("e", "", "Extra vars for ansible-playbook.")
-	section := flag.String("S", "", "Inventory section for distinguish hosts or tags.")
-	opt_action := flag.String("action", "", "Action to do required:(check,update,deploy,rollback).")
-	retry_file := flag.String("r", "", "Retry file for ansible redo failed hosts.")
-	inventory_file := flag.String("i", "", "Specify inventory host file.")
-	operation_file := flag.String("f", "", "File name for module configure(yml format).")
-	version := flag.Bool("v", false, "Show version")
+	log4file = flag.Bool("log4file", false, "Specify log in file for output.")
+	single_mode = flag.Bool("s", false, "Single mode in deploy one host for observation.")
+	concurrent = flag.Int("c", 1, "Process nummber for run the command at same time.")
+	program_version = flag.String("V", "", "Module program version for deploy.")
+	extra_vars = flag.String("e", "", "Extra vars for ansible-playbook.")
+	section = flag.String("S", "", "Inventory section for distinguish hosts or tags.")
+	opt_action = flag.String("action", "", "Action to do required:(check,update,deploy,rollback).")
+	retry_file = flag.String("r", "", "Retry file for ansible redo failed hosts.")
+	inventory_file = flag.String("i", "", "Specify inventory host file.")
+	operation_file = flag.String("f", "", "File name for module configure(yml format).")
+	version = flag.Bool("v", false, "Show version")
 
 	flag.Parse()
-
-	if *version {
-		fmt.Printf("%s: %s\n", os.Args[0], VERSION)
-		os.Exit(retOK)
-	}
 
 	if *opt_action == "" {
 		action = flag.Arg(0)
@@ -388,6 +384,20 @@ func main() {
 
 	initLogger(*log4file)
 	defer deinitLogger()
+}
+
+func main() {
+	var ini_cfg *ini.File
+	var err error
+
+	if _, err = isExists(ANSIBLE_CMD); err != nil {
+		ANSIBLE_CMD = "ansible-playbook"
+	}
+
+	if *version {
+		fmt.Printf("%s: %s\n", os.Args[0], VERSION)
+		os.Exit(retOK)
+	}
 
 	if *operation_file == "" || *inventory_file == "" {
 		fmt.Printf("[ERROR] Not supported action: %s\n", action)
