@@ -156,7 +156,7 @@ func opYamlSyntaxCheck(action, inventory_file, operation_file, ext_vars, section
 		panic(err)
 	} else if ret != 0 {
 		fmt.Printf("[ERROR] syntax-check failed of %s.\n", operation_file)
-		//os.Exit(retFailed)
+		os.Exit(retFailed)
 	}
 }
 
@@ -277,7 +277,6 @@ func doUpdateAction(action string, inventory_file string, operation_file string,
 			ANSIBLE_CMD, inventory_file, operation_file, concurrent, action, action, concurrent)
 	}
 
-	//fmt.Printf("%s\n", cmd)
 	if _, _, err := execCmd(cmd, true); err != nil {
 		fmt.Printf("[ERROR] %s() with error: %s\n", loginfo, err)
 		goto proc_error
@@ -344,8 +343,7 @@ proc_error:
 }
 
 var Usage = func() {
-	fmt.Fprintf(os.Stdout, "Usage of %s [options] action\n", os.Args[0])
-	fmt.Println("")
+	fmt.Fprintf(os.Stdout, "Usage of %s [options] action\n\n", os.Args[0])
 	flag.PrintDefaults()
 
 	fmt.Fprintf(os.Stdout, "\n  action    action to do required:(check,update,deploy,rollback).\n")
