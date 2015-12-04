@@ -103,21 +103,38 @@ func isExists(file string) (ret bool, err error) {
 	}
 }
 
-func main() {
+var usage = func() {
+	fmt.Fprintf(os.Stdout, "Usage:\n  %s [options] file/dir\n\n", os.Args[0])
+	fmt.Fprintf(os.Stdout, "Options:\n")
+	flag.PrintDefaults()
 
-	var cmd string
-	var suffixArray []string
+	fmt.Fprintf(os.Stdout, "\nRequires:\n")
+	fmt.Fprintf(os.Stdout, "  file/dir    file or dir to deal with.\n")
 
-	op_path := flag.String("d", "", "dir to recursive remove spaces at the end of the line.")
-	op_file := flag.String("f", "", "file name for remove spaces at the end of line.")
-	suffixs := flag.String("s", "", "white list of file suffixs for deal.")
-	version := flag.Bool("v", false, "show version")
+	os.Exit(retOK)
+}
 
+var (
+	cmd         string
+	suffixArray []string
+
+	suffixs = flag.String("s", "", "white list of file suffixs for deal.")
+	version = flag.Bool("v", false, "show version")
+)
+
+func init() {
+	flag.Usage = usage
 	flag.Parse()
 
 	if *version {
 		fmt.Printf("%s: %s\n", os.Args[0], VERSION)
 		os.Exit(retOK)
+	}
+
+	*suffixs = strings.TrimSpace(*suffixs)
+
+	if *suffixs != "" {
+		suffixArray = strings.Split(*suffixs, ",")
 	}
 
 	switch runtime.GOOS {
@@ -130,36 +147,32 @@ func main() {
 	default:
 		cmd = "sed -i \"s/[ \t]*$//g\" "
 	}
+}
 
-	*op_path = strings.TrimSpace(*op_path)
-	*op_file = strings.TrimSpace(*op_file)
-	*suffixs = strings.TrimSpace(*suffixs)
+func main() {
 
-	if *suffixs != "" {
-		suffixArray = strings.Split(*suffixs, ",")
-	}
-
-	if *op_path == "" && *op_file == "" {
+	if flag.NArg() == 0 {
 		fmt.Printf("[Error] path or file must provide one.\n\n")
 		flag.Usage()
 		os.Exit(retFail)
-	} else if *op_file != "" {
-		if _, err := isExists(*op_file); err == nil {
-			if *op_file, err = filepath.Abs(*op_file); err != nil {
+	}
+
+	for i := 0; i < flag.NArg(); i++ {
+		path := strings.TrimSpace(flag.Arg(i))
+		switch dir, err := os.Stat(path); {
+		case err != nil:
+			//fmt.Printf("[Error] error in Stat(): %s.\n", err)
+			panic(err)
+		case dir.IsDir():
+			if path, err = filepath.Abs(path); err != nil {
 				panic(err)
 			}
-			dealFileWithWhiteList(*op_file, cmd, suffixArray)
-		} else {
-			panic(err)
-		}
-	} else if *op_path != "" {
-		if _, err := isExists(*op_path); err == nil {
-			if *op_path, err = filepath.Abs(*op_path); err != nil {
+			dealDirWithWhiteList(path, cmd, suffixArray)
+		default:
+			if path, err = filepath.Abs(path); err != nil {
 				panic(err)
 			}
-			dealDirWithWhiteList(*op_path, cmd, suffixArray)
-		} else {
-			panic(err)
+			dealFileWithWhiteList(path, cmd, suffixArray)
 		}
 	}
 }
