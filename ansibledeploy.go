@@ -91,7 +91,7 @@ func execCmd(cmd string, shell bool) (ret int, out []byte, err error) {
 		runcmd.Stderr = os.Stderr
 		err := runcmd.Start()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("%v", err)
 		}
 
 		if err = runcmd.Wait(); err != nil {
