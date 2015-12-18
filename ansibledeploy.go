@@ -343,7 +343,8 @@ proc_error:
 }
 
 var Usage = func() {
-	fmt.Fprintf(os.Stdout, "Usage of %s [options] action\n\n", os.Args[0])
+	fmt.Fprintf(os.Stdout, "Usage:\n  %s [options] action\n\n", os.Args[0])
+	fmt.Fprintf(os.Stdout, "Options:\n")
 	flag.PrintDefaults()
 
 	fmt.Fprintf(os.Stdout, "\n  action    action to do required:(check,update,deploy,rollback).\n")
