@@ -91,7 +91,7 @@ func execCmd(cmd string, shell bool) (ret int, out []byte, err error) {
 		runcmd.Stderr = os.Stderr
 		err := runcmd.Start()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("%v", err)
 		}
 
 		if err = runcmd.Wait(); err != nil {
@@ -348,6 +348,7 @@ var Usage = func() {
 	flag.PrintDefaults()
 
 	fmt.Fprintf(os.Stdout, "\n  action    action to do required:(check,update,deploy,rollback).\n")
+	os.Exit(retOK)
 }
 
 var (

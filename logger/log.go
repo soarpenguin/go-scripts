@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"runtime"
 	"time"
 )
@@ -38,11 +39,19 @@ func __FILE__() (fn string) {
 	return
 }
 
+func __prefix__() (prefix string) {
+	_, fn, li, _ := runtime.Caller(0)
+	prefix = fmt.Sprintf("[%s:%d]", filepath.Base(fn), li)
+
+	return
+}
+
 func Print(level int, format string, args ...interface{}) {
 	if !Verbose && level < WARNING {
 		return
 	}
 
+	//var PREFIX = __prefix__()
 	var PREFIX = "[" + __FILE__() + "]"
 	var logFormat = "%s %s [%s] %s\n"
 	if !NonColor {
