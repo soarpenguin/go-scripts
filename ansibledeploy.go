@@ -27,7 +27,7 @@ var ANSIBLE_CMD string = "/usr/bin/ansible-playbook"
 var gLogger log4go.Logger
 
 const (
-	retOK = iota
+	retOk = iota
 	retFailed
 	retInvaidArgs
 )
@@ -348,7 +348,7 @@ var Usage = func() {
 	flag.PrintDefaults()
 
 	fmt.Fprintf(os.Stdout, "\n  action    action to do required:(check,update,deploy,rollback).\n")
-	os.Exit(retOK)
+	os.Exit(retOk)
 }
 
 var (
@@ -396,7 +396,7 @@ func main() {
 
 	if *version {
 		fmt.Printf("%s: %s\n", os.Args[0], VERSION)
-		os.Exit(retOK)
+		os.Exit(retOk)
 	}
 
 	if *operation_file == "" || *inventory_file == "" {
