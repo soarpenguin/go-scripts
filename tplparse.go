@@ -188,7 +188,7 @@ func init() {
 	flag.StringVar(&tplfile, []string{"t", "-template"}, "server.conf.template", "Template file name for produce config file.")
 	flag.StringVar(&appName, []string{"-app"}, "appname", "App name for upstream/logfile name/conf name/consul key.")
 	flag.StringVar(&consulIp, []string{"c", "-consul"}, "10.10.10.10:8500", "Consul server 'url:port' for get upstream info.")
-	flag.StringVar(&virtualIp, []string{"v", "-virtualip"}, "0.0.0.0,0.0.0.1", "Virtual IP list for this app.")
+	flag.StringVar(&virtualIp, []string{"v", "-virtualip"}, "0.0.0.0:81,0.0.0.1", "Virtual IP/PORT list for this app.")
 	flag.StringVar(&output, []string{"o", "-output"}, "appname.conf", "Config file name for save config file.")
 	flag.BoolVar(&help, []string{"h", "-help"}, false, "Display the help")
 	flag.Parse()
