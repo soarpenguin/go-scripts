@@ -1,0 +1,19 @@
+$TTL    30
+@       IN SOA  ns1.xxxxx.com.   hostmaster.xxxxx.com. (
+                                2007102901              ; serial (d. adams)
+                                        1H              ; refresh
+                                        15M             ; retry
+                                        1W              ; expiry
+                                        1D )            ; minimum
+
+	IN	NS	ns1.xxxxx.com.
+	IN	NS	ns2.xxxxx.com.
+
+ns1		86400	IN	A	10.10.11.12
+ns2		86400	IN	A	10.10.11.13
+
+{{$appname := .AppName}}
+{{range $server := .Services}}
+  {{$server.DnsName}}                    IN      A       {{index $server.IPs 0}}
+{{end}}
+
