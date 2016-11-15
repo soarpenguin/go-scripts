@@ -21,9 +21,12 @@ func NewWatcher(file string) {
 		for {
 			select {
 			case event := <-watcher.Events:
-				log.Println("event:", event)
 				if event.Op&fsnotify.Write == fsnotify.Write {
 					log.Println("modified file:", event.Name)
+				} else if event.Op&fsnotify.Rename == fsnotify.Rename {
+					log.Println("rename file:", event.Name)
+				} else {
+					log.Println("event:", event)
 				}
 			case err := <-watcher.Errors:
 				log.Println("error:", err)
