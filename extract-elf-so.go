@@ -19,16 +19,14 @@
 package main
 
 import (
-	"fmt"
-
 	"bytes"
-	"regexp"
-	"strings"
-
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
+	"regexp"
+	"strings"
 
 	"github.com/docopt/docopt-go"
 )

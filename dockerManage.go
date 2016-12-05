@@ -13,7 +13,7 @@ func assert(err error) {
 }
 
 func main() {
-	dclient, err := dockerapi.NewClient("tcp://127.0.0.1:2375")
+	dclient, err := dockerapi.NewClient("tcp://127.0.0.1:2376")
 	assert(err)
 
 	if containers, err := dclient.ListContainers(dockerapi.ListContainersOptions{All: true}); err != nil {
