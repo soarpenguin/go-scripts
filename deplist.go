@@ -16,7 +16,7 @@ func usage() {
 	program := GetCurFilename()
 
 	fmt.Fprintf(os.Stdout, "Usage:\n  %s [flags] [pkg]\n\n", program)
-	fmt.Fprintf(os.Stdout, `  pkg   where pkg is the name of a Go package (e.g., github.com/cespare/deplist). 
+	fmt.Fprintf(os.Stdout, `  pkg   where pkg is the name of a Go package (e.g., github.com/cespare/deplist).
         If no package name is given, the current directory is used.`)
 	fmt.Println("\n")
 
